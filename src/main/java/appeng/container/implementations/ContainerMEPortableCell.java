@@ -22,12 +22,11 @@ package appeng.container.implementations;
 import appeng.api.config.Actionable;
 import appeng.api.config.PowerMultiplier;
 import appeng.api.implementations.IUpgradeableCellContainer;
-import appeng.api.networking.security.IActionHost;
 import appeng.container.interfaces.IInventorySlotAware;
+import appeng.container.interfaces.IPortableTerminal;
 import appeng.container.slot.SlotRestrictedInput;
-import appeng.core.AEConfig;
 import appeng.core.localization.PlayerMessages;
-import appeng.helpers.WirelessTerminalGuiObject;
+import appeng.items.contents.PortableCellViewer;
 import appeng.parts.automation.StackUpgradeInventory;
 import appeng.tile.inventory.AppEngInternalInventory;
 import appeng.util.Platform;
@@ -37,7 +36,6 @@ import baubles.api.BaublesApi;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.ClickType;
-import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.items.IItemHandler;
@@ -45,7 +43,7 @@ import net.minecraftforge.items.IItemHandler;
 
 public class ContainerMEPortableCell extends ContainerMEMonitorable implements IUpgradeableCellContainer, IAEAppEngInventory, IInventorySlotAware {
 
-    protected final WirelessTerminalGuiObject wirelessTerminalGUIObject;
+    protected final IPortableTerminal terminal;
     private final int slot;
     private double powerMultiplier = 0.5;
     private int ticks = 0;
@@ -53,11 +51,15 @@ public class ContainerMEPortableCell extends ContainerMEMonitorable implements I
     protected AppEngInternalInventory upgrades;
     protected SlotRestrictedInput magnetSlot;
 
-    public ContainerMEPortableCell(InventoryPlayer ip, WirelessTerminalGuiObject guiObject, boolean bindInventory) {
+    @SuppressWarnings("unused")
+    public ContainerMEPortableCell(InventoryPlayer ip, PortableCellViewer portableCellViewer) {
+        this(ip, portableCellViewer, true);
+    }
+    public ContainerMEPortableCell(InventoryPlayer ip, IPortableTerminal guiObject, boolean bindInventory) {
         super(ip, guiObject, guiObject, bindInventory);
         if (guiObject != null) {
-            final int slotIndex = ((IInventorySlotAware) guiObject).getInventorySlot();
-            if (!((IInventorySlotAware) guiObject).isBaubleSlot()) {
+            final int slotIndex = guiObject.getInventorySlot();
+            if (!guiObject.isBaubleSlot()) {
                 this.lockPlayerInventorySlot(slotIndex);
             }
             this.slot = slotIndex;
@@ -65,8 +67,8 @@ public class ContainerMEPortableCell extends ContainerMEMonitorable implements I
             this.slot = -1;
             this.lockPlayerInventorySlot(ip.currentItem);
         }
-        this.wirelessTerminalGUIObject = guiObject;
-        this.upgrades = new StackUpgradeInventory(wirelessTerminalGUIObject.getItemStack(), this, 2);
+        this.terminal = guiObject;
+        this.upgrades = new StackUpgradeInventory(terminal.getItemStack(), this, 2);
         this.loadFromNBT();
         this.setupUpgrades();
     }
@@ -76,7 +78,7 @@ public class ContainerMEPortableCell extends ContainerMEMonitorable implements I
         if (Platform.isServer()) {
 
             final ItemStack currentItem;
-            if (wirelessTerminalGUIObject.isBaubleSlot()) {
+            if (terminal.isBaubleSlot()) {
                 currentItem = BaublesApi.getBaublesHandler(this.getPlayerInv().player).getStackInSlot(this.slot);
             } else {
                 currentItem = this.slot < 0 ? this.getPlayerInv().getCurrentItem() : this.getPlayerInv().getStackInSlot(this.slot);
@@ -84,8 +86,8 @@ public class ContainerMEPortableCell extends ContainerMEMonitorable implements I
 
             if (currentItem.isEmpty()) {
                 this.setValidContainer(false);
-            } else if (!this.wirelessTerminalGUIObject.getItemStack().isEmpty() && currentItem != this.wirelessTerminalGUIObject.getItemStack()) {
-                if (!ItemStack.areItemsEqual(this.wirelessTerminalGUIObject.getItemStack(), currentItem)) {
+            } else if (!this.terminal.getItemStack().isEmpty() && currentItem != this.terminal.getItemStack()) {
+                if (!ItemStack.areItemsEqual(this.terminal.getItemStack(), currentItem)) {
                     this.setValidContainer(false);
                 }
             }
@@ -93,7 +95,7 @@ public class ContainerMEPortableCell extends ContainerMEMonitorable implements I
             // drain 1 ae t
             this.ticks++;
             if (this.ticks > 10) {
-                double ext = this.wirelessTerminalGUIObject.extractAEPower(this.getPowerMultiplier() * this.ticks, Actionable.MODULATE, PowerMultiplier.CONFIG);
+                double ext = this.terminal.extractAEPower(this.getPowerMultiplier() * this.ticks, Actionable.MODULATE, PowerMultiplier.CONFIG);
                 if (ext < this.getPowerMultiplier() * this.ticks) {
                     if (Platform.isServer() && this.isValidContainer()) {
                         this.getPlayerInv().player.sendMessage(PlayerMessages.DeviceNotPowered.get());
@@ -102,16 +104,6 @@ public class ContainerMEPortableCell extends ContainerMEMonitorable implements I
                     this.setValidContainer(false);
                 }
                 this.ticks = 0;
-            }
-
-            if (!this.wirelessTerminalGUIObject.rangeCheck()) {
-                if (Platform.isServer() && this.isValidContainer()) {
-                    this.getPlayerInv().player.sendMessage(PlayerMessages.OutOfRange.get());
-                }
-
-                this.setValidContainer(false);
-            } else {
-                this.setPowerMultiplier(AEConfig.instance().wireless_getDrainRate(this.wirelessTerminalGUIObject.getRange()));
             }
 
             super.detectAndSendChanges();
@@ -145,11 +137,6 @@ public class ContainerMEPortableCell extends ContainerMEMonitorable implements I
         return super.slotClick(slotId, dragType, clickTypeIn, player);
     }
 
-    @Override
-    protected IActionHost getActionHost() {
-        return this.wirelessTerminalGUIObject;
-    }
-
     private double getPowerMultiplier() {
         return this.powerMultiplier;
     }
@@ -165,7 +152,7 @@ public class ContainerMEPortableCell extends ContainerMEMonitorable implements I
 
     @Override
     public void setupUpgrades() {
-        if (wirelessTerminalGUIObject != null) {
+        if (terminal != null) {
             for (int upgradeSlot = 0; upgradeSlot < availableUpgrades(); upgradeSlot++) {
                 this.magnetSlot = new SlotRestrictedInput(SlotRestrictedInput.PlacableItemType.UPGRADES, upgrades, upgradeSlot, 206, 135 + upgradeSlot * 18, this.getInventoryPlayer());
                 this.magnetSlot.setNotDraggable();
@@ -180,14 +167,14 @@ public class ContainerMEPortableCell extends ContainerMEMonitorable implements I
             NBTTagCompound tag = new NBTTagCompound();
             this.upgrades.writeToNBT(tag, "upgrades");
 
-            this.wirelessTerminalGUIObject.saveChanges(tag);
+            this.terminal.saveChanges(tag);
         }
     }
 
     protected void loadFromNBT() {
-        NBTTagCompound data = wirelessTerminalGUIObject.getItemStack().getTagCompound();
+        NBTTagCompound data = terminal.getItemStack().getTagCompound();
         if (data != null) {
-            upgrades.readFromNBT(wirelessTerminalGUIObject.getItemStack().getTagCompound().getCompoundTag("upgrades"));
+            upgrades.readFromNBT(terminal.getItemStack().getTagCompound().getCompoundTag("upgrades"));
         }
     }
 
@@ -198,11 +185,11 @@ public class ContainerMEPortableCell extends ContainerMEMonitorable implements I
 
     @Override
     public int getInventorySlot() {
-        return wirelessTerminalGUIObject.getInventorySlot();
+        return terminal.getInventorySlot();
     }
 
     @Override
     public boolean isBaubleSlot() {
-        return wirelessTerminalGUIObject.isBaubleSlot();
+        return terminal.isBaubleSlot();
     }
 }

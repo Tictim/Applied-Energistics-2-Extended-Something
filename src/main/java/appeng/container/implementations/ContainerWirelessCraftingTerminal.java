@@ -39,7 +39,7 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.PlayerInvWrapper;
 
 
-public class ContainerWirelessCraftingTerminal extends ContainerMEPortableCell implements IContainerCraftingPacket {
+public class ContainerWirelessCraftingTerminal extends ContainerWirelessTerm implements IContainerCraftingPacket {
 
     private final AppEngInternalInventory output = new AppEngInternalInventory(this, 1);
     private final SlotCraftingMatrix[] craftingSlots = new SlotCraftingMatrix[9];
@@ -50,7 +50,7 @@ public class ContainerWirelessCraftingTerminal extends ContainerMEPortableCell i
     private IRecipe currentRecipe;
 
     public ContainerWirelessCraftingTerminal(final InventoryPlayer ip, final WirelessTerminalGuiObject gui) {
-        super(ip, gui, true);
+        super(ip, gui);
 
         final IItemHandler crafting = this.craftingGrid;
 

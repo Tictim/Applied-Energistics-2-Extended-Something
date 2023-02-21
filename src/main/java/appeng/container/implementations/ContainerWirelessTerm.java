@@ -19,13 +19,36 @@
 package appeng.container.implementations;
 
 
+import appeng.core.AEConfig;
+import appeng.core.localization.PlayerMessages;
 import appeng.helpers.WirelessTerminalGuiObject;
+import appeng.util.Platform;
 import net.minecraft.entity.player.InventoryPlayer;
 
 
 public class ContainerWirelessTerm extends ContainerMEPortableCell {
 
+    protected final WirelessTerminalGuiObject wirelessTerminalGUIObject;
+
     public ContainerWirelessTerm(final InventoryPlayer ip, final WirelessTerminalGuiObject gui) {
         super(ip, gui, true);
+        this.wirelessTerminalGUIObject = gui;
+    }
+
+    @Override
+    public void detectAndSendChanges() {
+        if (Platform.isServer()) {
+            super.detectAndSendChanges();
+
+            if (!this.wirelessTerminalGUIObject.rangeCheck()) {
+                if (Platform.isServer() && this.isValidContainer()) {
+                    this.getPlayerInv().player.sendMessage(PlayerMessages.OutOfRange.get());
+                }
+
+                this.setValidContainer(false);
+            } else {
+                this.setPowerMultiplier(AEConfig.instance().wireless_getDrainRate(this.wirelessTerminalGUIObject.getRange()));
+            }
+        }
     }
 }

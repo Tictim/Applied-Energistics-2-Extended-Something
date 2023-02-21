@@ -26,7 +26,6 @@ import appeng.api.config.PowerMultiplier;
 import appeng.api.features.ILocatable;
 import appeng.api.features.IWirelessTermHandler;
 import appeng.api.implementations.IUpgradeableCellHost;
-import appeng.api.implementations.guiobjects.IPortableCell;
 import appeng.api.implementations.tiles.IViewCellStorage;
 import appeng.api.implementations.tiles.IWirelessAccessPoint;
 import appeng.api.networking.IGrid;
@@ -44,8 +43,7 @@ import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.DimensionalCoord;
 import appeng.api.util.IConfigManager;
-import appeng.container.interfaces.IInventorySlotAware;
-import appeng.me.cluster.IAECluster;
+import appeng.container.interfaces.IPortableTerminal;
 import appeng.me.cluster.implementations.QuantumCluster;
 import appeng.parts.automation.StackUpgradeInventory;
 import appeng.parts.automation.UpgradeInventory;
@@ -61,7 +59,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.items.IItemHandler;
 
 
-public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, IInventorySlotAware, IViewCellStorage, IAEAppEngInventory, IUpgradeableCellHost {
+public class WirelessTerminalGuiObject implements IPortableTerminal, IActionHost, IViewCellStorage, IAEAppEngInventory, IUpgradeableCellHost {
 
     private final ItemStack effectiveItem;
     private final IWirelessTermHandler wth;
@@ -352,7 +350,8 @@ public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, II
         viewCell.writeToNBT(data, "viewCell");
         upgrades.writeToNBT(data, "upgrades");
     }
-    
+
+    @Override
     public void saveChanges(NBTTagCompound data) {
         if (effectiveItem.getTagCompound() != null) {
             effectiveItem.getTagCompound().merge(data);

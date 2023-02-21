@@ -21,7 +21,6 @@ package appeng.items.contents;
 
 import appeng.api.AEApi;
 import appeng.api.config.*;
-import appeng.api.implementations.guiobjects.IPortableCell;
 import appeng.api.implementations.items.IAEItemPowerStorage;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEMonitor;
@@ -30,7 +29,7 @@ import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
-import appeng.container.interfaces.IInventorySlotAware;
+import appeng.container.interfaces.IPortableTerminal;
 import appeng.me.helpers.MEMonitorHandler;
 import appeng.util.ConfigManager;
 import appeng.util.Platform;
@@ -40,7 +39,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import java.util.Collections;
 
 
-public class PortableCellViewer extends MEMonitorHandler<IAEItemStack> implements IPortableCell, IInventorySlotAware {
+public class PortableCellViewer extends MEMonitorHandler<IAEItemStack> implements IPortableTerminal {
 
     private final ItemStack target;
     private final IAEItemPowerStorage ips;
@@ -120,5 +119,14 @@ public class PortableCellViewer extends MEMonitorHandler<IAEItemStack> implement
 
         out.readFromNBT(Platform.openNbtData(this.target).copy());
         return out;
+    }
+
+    @Override
+    public void saveChanges(NBTTagCompound data) {
+        if (target.getTagCompound() != null) {
+            target.getTagCompound().merge(data);
+        } else {
+            target.setTagCompound(data);
+        }
     }
 }
